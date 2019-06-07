@@ -1,0 +1,192 @@
+# Weight-Lifting-Prediction
+
+Weight Lifting Exercise - Peer Review Assignment
+
+Summary:
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+The following steps will be taken to build the prediction model:
+1.	Data preparation
+2.	Data Exploring
+3.	Modeling
+4.	Prediction
+
+1.	Data Preparation:
+The required ‘caret’ package is installed and the library is loaded.
+> install.packages("caret")
+
+> library(caret)
+Loading required package: lattice
+Loading required package: ggplot2
+
+To load the training and testing datasets, ‘readr’ library is loaded and the file in ‘.csv’ format is loaded.
+
+library(readr)
+
+pml_training <- read_csv("C:/Users/A0737464/Desktop/pml-training.csv")
+
+pml_testing <- read_csv("C:/Users/A0737464/Desktop/pml-testing.csv")
+
+
+2.	Data Exploring:
+Check the dimension of the training and testing datasets.
+dim(pml_training)
+[1] 19622   160
+
+The training dataset has 19622 observations across 160 variables.
+
+dim(pml_testing)
+[1]  20 160
+The testing dataset has 20 observations across 160 variables for which the   ‘classe’ variable needs to be predicted.
+
+
+To check the ‘classe’ variable in the training dataset.
+
+>table(pml_training$classe)
+
+   A    B    C    D    E 
+5580 3797 3422 3216 3607 
+
+There are 5 classes in which the ‘classe’ is divided.
+
+The data in training and testing needs to be checked for missing values and the corresponding variables need to be removed.
+
+> NA_Count<- sapply(1:dim(pml_training)[2],function(x)sum(is.na(pml_training[,x])))
+> NA_list = which(NA_Count>0)
+
+The variables like username and timestamp also need to be removed.
+
+> colnames(pml_training[,c(1:7)])
+
+> pml_training<- pml_training[,-NA_list]
+> pml_training <- pml_training[,-c(1:7)]
+> pml_training$classe<- factor(pml_training$classe)
+
+> pml_testing<- pml_testing[,-NA_list]
+> pml_testing <- pml_testing[,-c(1:7)]
+
+
+
+3.	Modeling:
+
+For the classification problem at hand, Decision tree and random forest algorithms will be used to predict the model.
+
+For random forest:
+
+> set.seed(1234)
+> cv3<-trainControl(method="cv",number=3,allowParallel=TRUE,verboseIter=TRUE)
+> modrf<- train(classe~., data=pml_training, method="rf",trControl=cv3)
+
++ Fold1: mtry= 2 
+- Fold1: mtry= 2 
++ Fold1: mtry=27 
+- Fold1: mtry=27 
++ Fold1: mtry=52 
+- Fold1: mtry=52 
++ Fold2: mtry= 2 
+- Fold2: mtry= 2 
++ Fold2: mtry=27 
+- Fold2: mtry=27 
++ Fold2: mtry=52 
+- Fold2: mtry=52 
++ Fold3: mtry= 2 
+- Fold3: mtry= 2 
++ Fold3: mtry=27 
+- Fold3: mtry=27 
++ Fold3: mtry=52 
+- Fold3: mtry=52 
+Aggregating results
+Selecting tuning parameters
+Fitting mtry = 27 on full training set
+
+performancerf<-predict(modrf,pml_training)
+
+> table(performancerf,pml_training$classe)
+             
+performancerf    A    B    C    D    E
+            A 5580    0    0    0    0
+            B    0 3797    0    0    0
+            C    0    0 3422    0    0
+            D    0    0    0 3216    0
+            E    0    0    0    0 3607
+
+
+
+
+For decision tree:
+
+> modtree<- train(classe~.,data=pml_training,method="rpart",trControl=cv3)
++ Fold1: cp=0.03568 
+- Fold1: cp=0.03568 
++ Fold2: cp=0.03568 
+- Fold2: cp=0.03568 
++ Fold3: cp=0.03568 
+- Fold3: cp=0.03568 
+Aggregating results
+Selecting tuning parameters
+Fitting cp = 0.0357 on full training set
+
+> performancetree<-predict(modtree,pml_training)
+
+> table(performancetree,pml_training$classe)
+               
+performancetree    A    B    C    D    E
+              A 5080 1581 1587 1449  524
+              B   81 1286  108  568  486
+              C  405  930 1727 1199  966
+              D    0    0    0    0    0
+              E   14    0    0    0 1631
+
+From the results, Random forest has more accurate results hence we select Random Forest prediction on the testing dataset.
+
+
+
+
+
+4.	Prediction:
+
+By selecting Random forest to predict the outcomes on testing dataset.
+
+> prediction<-predict(modrf,pml_testing)
+> pml_write_files = function(x){
++ n = length(x)
++ for(i in 1:n){
++ filename = paste0("problem_id_",i,".txt")
++ write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
++ }
++ }
+
+> prediction
+
+ [1] B A B A A E D B A A B C B A E E A B B B
+Levels: A B C D E
+
+
+As per the model created,  the following are the predictions on the testing dataset.
+
+The predicted classes for the 20 tests are: 
+B A B A A E D B A A B C B A E E A B B B
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
